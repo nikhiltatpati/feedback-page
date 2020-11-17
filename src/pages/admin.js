@@ -47,6 +47,14 @@ class Admin extends Component {
 
   checkError(optionName) {
     let error = false;
+    if (optionName === "") {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Option cannot be empty",
+      });
+      error = true;
+    }
     this.state.items.map((item) => {
       if (item.option.toLowerCase() === optionName.toLowerCase()) {
         Swal.fire({
