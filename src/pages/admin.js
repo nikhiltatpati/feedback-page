@@ -48,7 +48,7 @@ class Admin extends Component {
   checkError(optionName) {
     let error = false;
     this.state.items.map((item) => {
-      if (item.option === optionName) {
+      if (item.option.toLowerCase() === optionName.toLowerCase()) {
         Swal.fire({
           icon: "error",
           title: "Oops...",
