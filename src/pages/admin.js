@@ -11,6 +11,7 @@ class Admin extends Component {
     };
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
+    this.checkError = this.checkError.bind(this);
   }
   handleChange(e) {
     this.setState({
@@ -32,30 +33,52 @@ class Admin extends Component {
     });
 
     if (optionName) {
-      Swal.fire(`Option name successfully updates to ${optionName}`);
+      if (!this.checkError(optionName)) {
+        Swal.fire(`Option name successfully updates to ${optionName}`);
 
-      const itemsRef = firebase.database().ref("items");
-      itemsRef.child(item.id).set({
-        count: item.count,
-        option: optionName,
-      });
+        const itemsRef = firebase.database().ref("items");
+        itemsRef.child(item.id).set({
+          count: item.count,
+          option: optionName,
+        });
+      }
     }
+  }
+
+  checkError(optionName) {
+    let error = false;
+    this.state.items.map((item) => {
+      if (item.option === optionName) {
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Option with same name is already present",
+        });
+        error = true;
+        this.setState({
+          currentOption: "",
+        });
+      }
+    });
+    return error;
   }
 
   handleSubmit(e) {
     e.preventDefault();
-    const itemsRef = firebase.database().ref("items");
-    const item = {
-      option: this.state.currentOption,
-      count: 0,
-    };
-    itemsRef.push(item);
-    this.setState({
-      currentOption: "",
-      count: "",
-    });
-  }
 
+    if (!this.checkError(this.state.currentOption)) {
+      const itemsRef = firebase.database().ref("items");
+      const item = {
+        option: this.state.currentOption,
+        count: 0,
+        deleted: false,
+      };
+      itemsRef.push(item);
+      this.setState({
+        currentOption: "",
+      });
+    }
+  }
 
   componentDidMount() {
     const itemsRef = firebase.database().ref("items");
@@ -67,6 +90,7 @@ class Admin extends Component {
           id: item,
           option: items[item].option,
           count: items[item].count,
+          deleted: items[item].deleted,
         });
       }
       this.setState({
@@ -76,37 +100,72 @@ class Admin extends Component {
   }
 
   removeItem(itemId) {
-    const itemRef = firebase.database().ref(`/items/${itemId}`);
-    itemRef.remove();
+    const itemsRef = firebase.database().ref("items");
+    itemsRef.child(itemId).update({
+      deleted: true,
+    });
   }
 
+  reset(itemId) {
+    const itemsRef = firebase.database().ref("items");
+    itemsRef.child(itemId).update({
+      deleted: false,
+    });
+  }
 
-  
   render() {
     return (
       <div>
-        <div className="container">
-          <section className="add-item">
+        <div>
+          <div
+            style={{
+              margin: 20,
+              background: "#d3d3d3",
+              padding: 50,
+            }}
+          >
             <h3>Add Option</h3>
             <form onSubmit={this.handleSubmit}>
-              <input
-                type="text"
-                name="currentOption"
-                placeholder="Add new option"
-                onChange={this.handleChange}
-                value={this.state.currentOption}
-              />
-              <button>Add Option</button>
+              <div class="input-group mb-3">
+                <input
+                  className="form-control"
+                  placeholder="Add new option"
+                  aria-label="Add new option"
+                  aria-describedby="basic-addon1"
+                  type="text"
+                  name="currentOption"
+                  onChange={this.handleChange}
+                  value={this.state.currentOption}
+                />
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                type="submit"
+                style={{
+                  width: "2vw",
+                }}
+              >
+                Submit
+              </button>
             </form>
-          </section>
-          <section className="display-item">
-            <div className="wrapper">
-              <ul>
-                {this.state.items.map((item) => {
-                  return (
-                    <li key={item.id}>
-                      <h3>
-                        {item.option}
+          </div>
+          <section>
+            <div className="container">
+              {this.state.items.map((item) => {
+                return (
+                  <div
+                    className="card"
+                    style={{
+                      display: "inline-block",
+                      width: "300px",
+                      margin: 20,
+                    }}
+                    key={item.id}
+                  >
+                    <div className="card-body">
+                      <h3 className="card-title">
+                        <b>{item.option}</b>
                         <i
                           class="fa fa-pencil"
                           style={{ margin: "10px", cursor: "pointer" }}
@@ -116,16 +175,41 @@ class Admin extends Component {
                           }}
                         ></i>
                       </h3>
-                      <p>
-                        Count: {item.count}
-                        <button onClick={() => this.removeItem(item.id)}>
+
+                      <p className="card-text">
+                        <b>Count: </b>
+                        {item.count}
+                      </p>
+                      {!item.deleted && (
+                        <button
+                          className="btn btn-danger"
+                          onClick={() => {
+                            this.removeItem(item.id);
+                          }}
+                        >
                           Remove Option
                         </button>
-                      </p>
-                    </li>
-                  );
-                })}
-              </ul>
+                      )}
+                      {item.deleted && (
+                        <div className="btn btn-info">Deleted</div>
+                      )}
+                      {item.deleted && (
+                        <button
+                          className="btn btn-warning"
+                          style={{
+                            margin: 10,
+                          }}
+                          onClick={() => {
+                            this.reset(item.id);
+                          }}
+                        >
+                          Undo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>

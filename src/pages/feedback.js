@@ -26,11 +26,13 @@ export default class Feedback extends React.Component {
         let newState = [];
 
         for (let item in items) {
-          newState.push({
-            id: item,
-            option: items[item].option,
-            count: items[item].count,
-          });
+          if (!items[item].deleted) {
+            newState.push({
+              id: item,
+              option: items[item].option,
+              count: items[item].count,
+            });
+          }
         }
         this.setState({ items: newState });
         newState.map((item) => (data[item.id] = item.option));
@@ -59,6 +61,7 @@ export default class Feedback extends React.Component {
       itemsRef.child(option).set({
         count: element[0].count + 1,
         option: data[option],
+        deleted: false,
       });
     }
   };
